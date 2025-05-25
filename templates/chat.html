@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Terminal {{ conv_id }}</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #0d1117;
+            color: #e6edf3;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background-color: #161b22;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Terminal window decorations */
+        .container:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: #21262d;
+            border-bottom: 1px solid #30363d;
+            z-index: 1;
+        }
+        
+        /* Terminal window controls */
+        .container:after {
+            content: "● ● ●";
+            position: absolute;
+            top: 8px;
+            left: 15px;
+            font-size: 14px;
+            color: #8b949e;
+            letter-spacing: 5px;
+            z-index: 2;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #58a6ff;
+            font-size: 18px;
+            margin: 10px 0 20px;
+            padding: 15px 0 10px;
+            font-family: 'Courier New', Courier, monospace;
+            position: relative;
+            z-index: 3;
+        }
+        
+        .chat-container {
+            flex: 1;
+            padding: 15px;
+            background: #0d1117;
+            border-radius: 4px;
+            border: 1px solid #30363d;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            position: relative;
+            overflow-y: auto;
+        }
+        
+        .welcome-message {
+            padding: 20px;
+            background-color: #1f2937;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #30363d;
+        }
+        
+        .welcome-message h2 {
+            color: #58a6ff;
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        
+        .welcome-message p {
+            color: #8b949e;
+            margin: 0;
+        }
+        
+        .welcome-message hr {
+            border: none;
+            border-top: 1px solid #30363d;
+            margin: 15px 0;
+        }
+        
+        .user-message, .assistant-message {
+            background-color: #1f2937;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            border: 1px solid #30363d;
+            position: relative;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .user-message {
+            color: #7ee787;
+        }
+        
+        .user-message:before {
+            content: "You";
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background-color: #1f2937;
+            padding: 0 5px;
+            font-size: 12px;
+            color: #58a6ff;
+        }
+        
+        .assistant-message {
+            color: #c9d1d9;
+            background-color: #21262d;
+        }
+        
+        .assistant-message:before {
+            content: "Claude";
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            background-color: #21262d;
+            padding: 0 5px;
+            font-size: 12px;
+            color: #58a6ff;
+        }
+        
+        .assistant-message p {
+            margin: 0.5em 0;
+        }
+        
+        .assistant-message ul, .assistant-message ol {
+            margin: 0.5em 0;
+            padding-left: 2em;
+        }
+        
+        .assistant-message li {
+            margin: 0.25em 0;
+        }
+        
+        /* Code block styling */
+        /* .code-block {
+            background-color: #1f2937;
+            border-radius: 4px;
+            margin: 10px 0;
+            border: 1px solid #30363d;
+            position: relative;
+        }
+         */
+         .code-block {
+            background-color: #1f2937;
+            border-radius: 6px;
+            margin: 8px 0;
+            border: 1px solid #30363d;
+            font-size: 0px;
+            line-height: 1.4;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            max-width: 100%;
+        }
+        .code-header {
+            background-color: #2d3748;
+            padding: 5px 10px;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .code-language {
+            color: #58a6ff;
+            font-weight: bold;
+        }
+        
+        .copy-button {
+            background-color: #1f6feb;
+            color: #f0f6fc;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        
+        /* .code-block pre {
+            margin: 0;
+            padding: 10px;
+            overflow-x: auto;
+        }
+        
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            color: #e6edf3;
+        } */
+        
+.code-block pre {
+    margin: 0;
+    padding: 8px 12px;
+    overflow-x: auto;
+}
+
+.code-block code {
+    font-family: 'Courier New', monospace;
+    color: #e6edf3;
+    font-size: 13px;
+    display: block;
+    white-space: pre;
+}
+
+.code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #111827;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: #9ca3af;
+    border-bottom: 1px solid #30363d;
+}
+
+.code-language {
+    font-weight: bold;
+    color: #60a5fa;
+}
+
+.copy-button {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.copy-button:hover {
+    background-color: #2563eb;
+}
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background-color: #21262d;
+            border-top: 1px solid #30363d;
+            align-items: center;
+        }
+        
+        .input-group {
+            flex: 1;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background-color: #0d1117;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #30363d;
+        }
+        
+        .message-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #c9d1d9;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 16px;
+            padding: 0;
+            margin: 0;
+            outline: none;
+            resize: none;
+            min-height: 24px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .toolbar-button {
+            padding: 10px 15px;
+            background-color: #238636;
+            color: #f0f6fc;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .toolbar-button:hover {
+            background-color: #2ea043;
+            box-shadow: 0 0 10px rgba(46, 160, 67, 0.5);
+        }
+        
+        .toolbar-button.secondary {
+            background-color: #21262d;
+            border: 1px solid #30363d;
+        }
+        
+        .toolbar-button.secondary:hover {
+            background-color: #30363d;
+            box-shadow: 0 0 10px rgba(48, 54, 61, 0.5);
+        }
+        
+        .toolbar-button.danger {
+            background-color: #da3633;
+            border: 1px solid #f85149;
+        }
+        
+        .toolbar-button.danger:hover {
+            background-color: #f85149;
+            box-shadow: 0 0 10px rgba(248, 81, 73, 0.5);
+        }
+        
+        .file-upload {
+            position: relative;
+        }
+        
+        .file-upload input[type="file"] {
+            display: none;
+        }
+        
+        .file-list {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            right: 0;
+            background-color: #1f2937;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            padding: 10px;
+            display: none;
+        }
+        
+        .file-list.active {
+            display: block;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 5px;
+            border-bottom: 1px solid #30363d;
+        }
+        
+        .file-item:last-child {
+            border-bottom: none;
+        }
+        
+        .file-item button {
+            background: none;
+            border: none;
+            color: #f85149;
+            cursor: pointer;
+            padding: 2px 5px;
+        }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #0d1117;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #21262d;
+        }
+        
+        /* System stats */
+        .system-stats {
+            position: absolute;
+            top: 8px;
+            right: 15px;
+            color: #8b949e;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            z-index: 5;
+        }
+    </style>
+    <script>
+        // Function to scroll chat to bottom
+        function scrollToBottom() {
+            const chatContainer = document.querySelector('.chat-container');
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }
+        
+        // Function to copy code
+        function copyCode(blockId) {
+            const codeBlock = document.getElementById(blockId);
+            if (!codeBlock) return;
+            
+            const codeContent = codeBlock.querySelector('code').innerText;
+            
+            // Create temporary textarea
+            const textarea = document.createElement('textarea');
+            textarea.value = codeContent;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            
+            // Select and copy
+            textarea.select();
+            document.execCommand('copy');
+            
+            // Remove textarea
+            document.body.removeChild(textarea);
+            
+            // Update button text
+            const button = codeBlock.querySelector('.copy-button');
+            const originalText = button.innerText;
+            button.innerText = 'Copied!';
+            
+            // Reset button text after 2 seconds
+            setTimeout(() => {
+                button.innerText = originalText;
+            }, 2000);
+        }
+        
+        // Handle file selection
+        function handleFiles() {
+            const fileInput = document.getElementById('file-input');
+            const fileList = document.querySelector('.file-list');
+            const files = fileInput.files;
+            
+            // Clear existing file list
+            fileList.innerHTML = '';
+            
+            // Add each file to the list
+            Array.from(files).forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = 
+                    '<span>' + file.name + '</span>' +
+                    '<button onclick="removeFile(' + index + ')">×</button>';
+                fileList.appendChild(fileItem);
+            });
+            
+            // Show file list if there are files
+            fileList.classList.toggle('active', files.length > 0);
+            
+            // Update button text
+            const fileLabel = document.querySelector('.file-upload .toolbar-button');
+            fileLabel.textContent = files.length > 0 ? '📎 ' + files.length + ' Files' : '📎 Upload Files';
+        }
+        
+        // Remove file from selection
+        function removeFile(index) {
+            const fileInput = document.getElementById('file-input');
+            const dt = new DataTransfer();
+            const files = fileInput.files;
+            
+            for (let i = 0; i < files.length; i++) {
+                if (i !== index) {
+                    dt.items.add(files[i]);
+                }
+            }
+            
+            fileInput.files = dt.files;
+            handleFiles();
+        }
+        
+        // Add system stats to the terminal
+        function addSystemStats() {
+            const statsBar = document.createElement('div');
+            statsBar.className = 'system-stats';
+            
+            function updateStats() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString();
+                const memUsage = Math.floor(Math.random() * 30) + 70;
+                const cpuUsage = Math.floor(Math.random() * 40) + 10;
+                
+                statsBar.innerHTML = 
+                    '<span style="margin-right: 15px;">MEM: ' + memUsage + '%</span>' +
+                    '<span style="margin-right: 15px;">CPU: ' + cpuUsage + '%</span>' +
+                    '<span>' + timeString + '</span>';
+            }
+            
+            updateStats();
+            setInterval(updateStats, 1000);
+            
+            document.querySelector('.container').appendChild(statsBar);
+        }
+        
+        // Auto-resize textarea
+        function autoResize(element) {
+            element.style.height = 'auto';
+            element.style.height = (element.scrollHeight) + 'px';
+        }
+        
+        // Delete conversation
+        function deleteConversation(conv_id) {
+            if (confirm('Are you sure you want to delete Terminal ' + conv_id + '?')) {
+                window.location.href = '/delete/' + conv_id;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Scroll to bottom
+            scrollToBottom();
+            
+            // Add system stats
+            addSystemStats();
+            
+            // Setup textarea auto-resize
+            const textarea = document.querySelector('.message-input');
+            if (textarea) {
+                textarea.addEventListener('input', function() {
+                    autoResize(this);
+                });
+                
+                // Handle Enter key
+                textarea.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.form.submit();
+                    }
+                });
+                
+                // Initial focus
+                textarea.focus();
+            }
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Terminal {{ conv_id }} - {{ settings['mode'] }})</h1>
+        <div class="chat-container">
+            {{ terminal_output|safe }}
+        </div>
+        <form method="post" class="toolbar" enctype="multipart/form-data">
+            <div class="input-group">
+                <textarea name="message" class="message-input" rows="1" placeholder="Type your message..."></textarea>
+            </div>
+            <div class="file-upload">
+                <input type="file" name="files" id="file-input" multiple onchange="handleFiles()">
+                <div class="file-list"></div>
+                <label for="file-input" class="toolbar-button secondary">📎 Upload Files</label>
+            </div>
+            <button type="submit" class="toolbar-button">Send</button>
+            <a href="{{ url_for('new_conversation') }}" class="toolbar-button secondary">+ New Terminal</a>
+            <button type="button" onclick="deleteConversation({{ conv_id }})" class="toolbar-button danger">🗑️ Delete</button>
+            <a href="{{ url_for('index') }}" class="toolbar-button secondary">🏠 Home</a>
+        </form>
+    </div>
+</body>
+</html>

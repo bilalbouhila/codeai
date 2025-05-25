@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Terminal Claude</title>
+    <style>
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #0d1117;
+            color: #e6edf3;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            background-color: #161b22;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Terminal window decorations */
+        .container:before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: #21262d;
+            border-bottom: 1px solid #30363d;
+            z-index: 1;
+        }
+        
+        /* Terminal window controls */
+        .container:after {
+            content: "● ● ●";
+            position: absolute;
+            top: 8px;
+            left: 15px;
+            font-size: 14px;
+            color: #8b949e;
+            letter-spacing: 5px;
+            z-index: 2;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #58a6ff;
+            font-size: 18px;
+            margin: 10px 0 20px;
+            padding: 15px 0 10px;
+            font-family: 'Courier New', Courier, monospace;
+            position: relative;
+            z-index: 3;
+        }
+        
+        .terminal {
+            flex: 1;
+            padding: 15px;
+            background: #0d1117;
+            border-radius: 4px;
+            border: 1px solid #30363d;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow-y: auto;
+        }
+        
+        .model-select, .mode-select, .conversations {
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            padding: 20px;
+            border-radius: 4px;
+        }
+        
+        .model-select h2, .mode-select h2, .conversations h2 {
+            color: #58a6ff;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        
+        .model-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .model-card {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            padding-top: 30px;
+        }
+        
+        .model-card:hover {
+            border-color: #58a6ff;
+            box-shadow: 0 0 10px rgba(56, 139, 253, 0.3);
+        }
+        
+        .model-card.selected {
+            border-color: #238636;
+            box-shadow: 0 0 10px rgba(35, 134, 54, 0.3);
+        }
+        
+        .model-card h3 {
+            color: #7ee787;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        
+        .model-card p {
+            color: #8b949e;
+            margin: 0;
+            font-size: 12px;
+        }
+        
+        /* Price tier badges */
+        .price-tier {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .price-tier.highest {
+            background-color: #f85149;
+            color: #fff;
+        }
+        
+        .price-tier.medium-high {
+            background-color: #db6d28;
+            color: #fff;
+        }
+        
+        .price-tier.medium {
+            background-color: #d29922;
+            color: #fff;
+        }
+        
+        .price-tier.low-medium {
+            background-color: #3fb950;
+            color: #fff;
+        }
+        
+        .price-tier.lowest {
+            background-color: #238636;
+            color: #fff;
+        }
+        
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .mode-card {
+            background-color: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 4px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .mode-card:hover {
+            border-color: #58a6ff;
+            box-shadow: 0 0 10px rgba(56, 139, 253, 0.3);
+        }
+        
+        .mode-card.selected {
+            border-color: #238636;
+            box-shadow: 0 0 10px rgba(35, 134, 54, 0.3);
+        }
+        
+        .mode-card h3 {
+            color: #7ee787;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+        }
+        
+        .mode-card p {
+            color: #8b949e;
+            margin: 0;
+            font-size: 12px;
+        }
+        
+        .conversation-list {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .conversation-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            padding: 15px;
+            background-color: #21262d;
+            border-top: 1px solid #30363d;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .toolbar-button {
+            padding: 10px 15px;
+            background-color: #238636;
+            color: #f0f6fc;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .toolbar-button:hover {
+            background-color: #2ea043;
+            box-shadow: 0 0 10px rgba(46, 160, 67, 0.5);
+        }
+        
+        .toolbar-button.secondary {
+            background-color: #21262d;
+            border: 1px solid #30363d;
+        }
+        
+        .toolbar-button.secondary:hover {
+            background-color: #30363d;
+            box-shadow: 0 0 10px rgba(48, 54, 61, 0.5);
+        }
+        
+        .toolbar-button.danger {
+            background-color: #da3633;
+            border: 1px solid #f85149;
+        }
+        
+        .toolbar-button.danger:hover {
+            background-color: #f85149;
+            box-shadow: 0 0 10px rgba(248, 81, 73, 0.5);
+        }
+        
+        /* System stats */
+        .system-stats {
+            position: absolute;
+            top: 8px;
+            right: 15px;
+            color: #8b949e;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            z-index: 5;
+        }
+    </style>
+    <script>
+        // Mode-specific configurations
+        const MODE_CONFIGS = {
+            'professional': {
+                'default_model': 'claude-3-opus-20240229',
+                'description': 'Formal and precise responses, ideal for work-related tasks.'
+            },
+            'casual': {
+                'default_model': 'claude-3-haiku-20240307',
+                'description': 'Relaxed and friendly conversation style.'
+            },
+            'code': {
+                'default_model': 'claude-3-opus-20240229',
+                'description': 'Optimized for programming and technical discussions.'
+            },
+            'correction': {
+                'default_model': 'claude-3-sonnet-20240229',
+                'description': 'Focused on fixing grammar, spelling, and style.'
+            }
+        };
+        
+        // Add system stats to the terminal
+        function addSystemStats() {
+            const statsBar = document.createElement('div');
+            statsBar.className = 'system-stats';
+            
+            // Update stats every second
+            function updateStats() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString();
+                const memUsage = Math.floor(Math.random() * 30) + 70; // Simulate memory usage 70-100%
+                const cpuUsage = Math.floor(Math.random() * 40) + 10; // Simulate CPU usage 10-50%
+                
+                statsBar.innerHTML = `
+                    <span style="margin-right: 15px;">MEM: ${memUsage}%</span>
+                    <span style="margin-right: 15px;">CPU: ${cpuUsage}%</span>
+                    <span>${timeString}</span>
+                `;
+            }
+            
+            updateStats();
+            setInterval(updateStats, 1000);
+            
+            document.querySelector('.container').appendChild(statsBar);
+        }
+        
+        // Handle model and mode selection
+        function selectModel(element) {
+            document.querySelectorAll('.model-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            updateStartButton();
+        }
+        
+        function selectMode(element) {
+            document.querySelectorAll('.mode-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            
+            // Auto-select recommended model for this mode
+            const mode = element.getAttribute('data-mode');
+            const recommendedModel = MODE_CONFIGS[mode].default_model;
+            
+            document.querySelectorAll('.model-card').forEach(card => {
+                if (card.getAttribute('data-model') === recommendedModel) {
+                    selectModel(card);
+                }
+            });
+            
+            updateStartButton();
+        }
+        
+        function updateStartButton() {
+            const modelSelected = document.querySelector('.model-card.selected');
+            const modeSelected = document.querySelector('.mode-card.selected');
+            const startButton = document.querySelector('.start-button');
+            
+            if (modelSelected && modeSelected) {
+                startButton.style.opacity = '1';
+                startButton.style.pointerEvents = 'auto';
+            } else {
+                startButton.style.opacity = '0.5';
+                startButton.style.pointerEvents = 'none';
+            }
+        }
+        
+        function startNewConversation() {
+            const modelSelected = document.querySelector('.model-card.selected');
+            const modeSelected = document.querySelector('.mode-card.selected');
+            
+            if (!modelSelected || !modeSelected) return;
+            
+            const model = modelSelected.getAttribute('data-model');
+            const mode = modeSelected.getAttribute('data-mode');
+            
+            window.location.href = `/new?model=${model}&mode=${mode}`;
+        }
+        
+        function deleteConversation(conv_id) {
+            if (confirm(`Are you sure you want to delete Terminal ${conv_id}?`)) {
+                window.location.href = `/delete/${conv_id}`;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add system stats
+            addSystemStats();
+            
+            // Initialize button state
+            updateStartButton();
+        });
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Claude Terminal v3.7</h1>
+        <div class="terminal">
+            <div class="model-select">
+                <h2>Select Model</h2>
+                <div class="model-grid">
+                    <div class="model-card" data-model="claude-3-opus-20240229" onclick="selectModel(this)">
+                        <span class="price-tier highest">Highest</span>
+                        <h3>Claude 3 Opus</h3>
+                        <p>Most powerful model, best for complex tasks, deep analysis, and nuanced content generation</p>
+                    </div>
+                    <div class="model-card" data-model="claude-3-sonnet-20240229" onclick="selectModel(this)">
+                        <span class="price-tier medium">Medium</span>
+                        <h3>Claude 3 Sonnet</h3>
+                        <p>Balanced model offering strong performance across a wide range of tasks</p>
+                    </div>
+                    <div class="model-card" data-model="claude-3-haiku-20240307" onclick="selectModel(this)">
+                        <span class="price-tier lowest">Lowest</span>
+                        <h3>Claude 3 Haiku</h3>
+                        <p>Fastest model, optimized for quick responses and simpler tasks</p>
+                    </div>
+                    <div class="model-card" data-model="claude-3-5-sonnet-20240620" onclick="selectModel(this)">
+                        <span class="price-tier medium-high">Medium-High</span>
+                        <h3>Claude 3.5 Sonnet</h3>
+                        <p>Improved version of Sonnet with better performance</p>
+                    </div>
+                    <div class="model-card" data-model="claude-3-5-haiku-20240307" onclick="selectModel(this)">
+                        <span class="price-tier low-medium">Low-Medium</span>
+                        <h3>Claude 3.5 Haiku</h3>
+                        <p>Fast model with improved capabilities over Claude 3 Haiku</p>
+                    </div>
+                    <div class="model-card" data-model="claude-3-7-sonnet-20250219" onclick="selectModel(this)">
+                        <span class="price-tier medium-high">Medium-High</span>
+                        <h3>Claude 3.7 Sonnet</h3>
+                        <p>Latest Sonnet model with enhanced reasoning capabilities</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mode-select">
+                <h2>Select Mode</h2>
+                <div class="mode-grid">
+                    <div class="mode-card" data-mode="professional" onclick="selectMode(this)">
+                        <h3>Professional</h3>
+                        <p>Formal and precise responses, ideal for work-related tasks.</p>
+                    </div>
+                    <div class="mode-card" data-mode="casual" onclick="selectMode(this)">
+                        <h3>Casual</h3>
+                        <p>Relaxed and friendly conversation style.</p>
+                    </div>
+                    <div class="mode-card" data-mode="code" onclick="selectMode(this)">
+                        <h3>Code Focus</h3>
+                        <p>Optimized for programming and technical discussions.</p>
+                    </div>
+                    <div class="mode-card" data-mode="correction" onclick="selectMode(this)">
+                        <h3>Text Correction</h3>
+                        <p>Focused on fixing grammar, spelling, and style.</p>
+                    </div>
+                </div>
+            </div>
+            
+            {% if conv_list %}
+            <div class="conversations">
+                <h2>Recent Conversations</h2>
+                <div class="conversation-list">
+                    {% for conv in conv_list %}
+                        <div class="conversation-item">
+                            <a href="{{ url_for('chat', conv_id=conv) }}" class="toolbar-button secondary">Terminal {{ conv }}</a>
+                            <button onclick="deleteConversation({{ conv }})" class="toolbar-button danger">🗑️</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="toolbar">
+            <button onclick="startNewConversation()" class="toolbar-button start-button" style="opacity: 0.5; pointer-events: none;">Start New Terminal</button>
+        </div>
+    </div>
+</body>
+</html>
